@@ -28,6 +28,11 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     jooqGenerator("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+
+    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+    implementation("com.github.kittinunf.fuel:fuel-gson:2.3.1")
+
+    implementation("com.github.salomonbrys.kotson:kotson:2.5.0")
 }
 
 //TODO should probably read this from the config
