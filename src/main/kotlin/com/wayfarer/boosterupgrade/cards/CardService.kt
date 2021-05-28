@@ -5,6 +5,7 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.salomonbrys.kotson.*
 import com.google.gson.Gson
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.wayfarer.boosterupgrade.jooq.Tables.MTGJSON_UPDATE
 import com.wayfarer.boosterupgrade.jooq.tables.records.AtomicCardRecord
@@ -18,7 +19,6 @@ import org.jooq.DSLContext
 import org.jooq.JSONB
 import org.springframework.stereotype.Repository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.net.URL
 import java.util.zip.ZipInputStream
 import javax.annotation.PostConstruct
@@ -77,14 +77,18 @@ class CardService(
                 val faceJsons = cardJson.array
                 val faces = faceJsons.sortedBy { it.getOrNull("side")?.nullString ?: "AAA" }
 
+                fun JsonElement.faceName(): String {
+                    return this.getOrNull("faceName")?.nullString ?: this["name"].string
+                }
+
                 AtomicCardRecord().apply {
-                    this.fullName = faces.map { it["name"].string }.distinct().joinToString(" // ")
+                    this.fullName = faces.map { it.faceName() }.distinct().joinToString(" // ")
                     this.cardJson = JSONB.jsonb(JsonArray().apply {
                         faces.forEach { face ->
                             add(face)
                         }
                     }.toString())
-                    this.names = faces.map { it["name"].string }.toTypedArray()
+                    this.names = faces.map { it.faceName() }.toTypedArray()
                     this.firstName = names.first()
 
                     if (!faces.first()["identifiers"].obj.has("scryfallOracleId")) {
@@ -99,30 +103,43 @@ class CardService(
 
     //TODO also on schedule
     @PostConstruct
-    @Transactional
     fun updateCardData() {
-        val onlineVersion = try {
-            gson.fromJson<MtgJsonVersionData>(
-                gson.fromJson<JsonObject>(
-                    META_JSON_URL.httpGet().responseString().third.get()
-                )["meta"]
-            )
-        } catch (ex: FuelError) {
-            log.error("Couldn't fetch meta json", ex)
-            null
+        ctx.transaction { conf ->
+            val onlineVersion = try {
+                gson.fromJson<MtgJsonVersionData>(
+                    gson.fromJson<JsonObject>(
+                        META_JSON_URL.httpGet().responseString().third.get()
+                    )["meta"]
+                )
+            } catch (ex: FuelError) {
+                log.error("Couldn't fetch meta json", ex)
+                null
+            }
+
+            val currentVersion = updateRepository.findNewest()
+            if (onlineVersion != null && (currentVersion == null || currentVersion.version != onlineVersion.version)) {
+                ctx.executeDeferConstraints()
+
+                val newCards = retrieveAtomicCards()
+                log.info("Retrieved ${newCards.size} new cards")
+                atomicCardRepository.deleteAll()
+                val inserted = atomicCardRepository.insertAll(newCards)
+                updateRepository.insertUpdate(onlineVersion.date, onlineVersion.version)
+                log.info("Inserted $inserted cards")
+            }
+        }
+    }
+
+    fun correctCardNames(cardNames: List<String>): Map<String, String?> {
+        val namesForCards = atomicCardRepository.fullNamesForCards(cardNames)
+
+        val fixedNames = cardNames.associateWith { origName ->
+            namesForCards.firstOrNull {
+                it.first == origName || it.second == origName
+            }?.first
         }
 
-        val currentVersion = updateRepository.findNewest()
-        if (onlineVersion != null && (currentVersion == null || currentVersion.version != onlineVersion.version)) {
-            ctx.executeDeferConstraints()
-
-            val newCards = retrieveAtomicCards()
-            log.info("Retrieved ${newCards.size} new cards")
-            atomicCardRepository.deleteAll()
-            val inserted = atomicCardRepository.insertAll(newCards)
-            updateRepository.insertUpdate(onlineVersion.date, onlineVersion.version)
-            log.info("Inserted $inserted cards")
-        }
+        return fixedNames
     }
 
 }
