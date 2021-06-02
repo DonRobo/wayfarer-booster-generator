@@ -59,8 +59,8 @@ class EdhRecService(
                     val match = parserRegex.matchEntire(label) ?: return@mapNotNull null
                     EdhRecommendation(
                         cardView["names"].array.joinToString(" // ") { it.string },
-                        match.groupValues[1].toInt(),
                         match.groupValues[2].toInt(),
+                        match.groupValues[1].toInt(),
                     )
                 }
             }

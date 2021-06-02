@@ -1,0 +1,19 @@
+package com.wayfarer.boosterupgrade.precon
+
+import com.wayfarer.boosterupgrade.jooq.Tables.PRECON
+import com.wayfarer.boosterupgrade.jooq.Tables.PRECON_CARD
+import com.wayfarer.boosterupgrade.jooq.tables.records.PreconCardRecord
+import com.wayfarer.boosterupgrade.jooq.tables.records.PreconRecord
+import com.wayfarer.boosterupgrade.util.jooq.CrudJooqRepository
+import org.jooq.DSLContext
+import org.springframework.stereotype.Repository
+
+@Repository
+class PreconRepository(
+    ctx: DSLContext
+) : CrudJooqRepository<PreconRecord>(ctx, PRECON)
+
+@Repository
+class PreconCardRepository(
+    ctx: DSLContext
+) : CrudJooqRepository<PreconCardRecord>(ctx, PRECON_CARD)
