@@ -11,7 +11,18 @@ import org.springframework.stereotype.Repository
 @Repository
 class PreconRepository(
     ctx: DSLContext
-) : CrudJooqRepository<PreconRecord>(ctx, PRECON)
+) : CrudJooqRepository<PreconRecord>(ctx, PRECON) {
+    private val pc = PRECON_CARD.`as`("pc")
+
+    fun findCommanderForDeck(deckName: String): String {
+        return ctx.select(pc.CARD_NAME)
+            .from(pc)
+            .where(pc.COMMANDER)
+            .and(pc.PRECON.eq(deckName))
+            .fetchSingle()
+            .value1()
+    }
+}
 
 @Repository
 class PreconCardRepository(

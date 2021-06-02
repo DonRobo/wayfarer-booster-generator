@@ -7,6 +7,7 @@ import com.google.gson.JsonObject
 import com.wayfarer.boosterupgrade.cards.CardService
 import com.wayfarer.boosterupgrade.jooq.tables.records.EdhrecRecommendationRecord
 import com.wayfarer.boosterupgrade.jooq.tables.records.EdhrecThemeRecord
+import com.wayfarer.boosterupgrade.precon.PreconRepository
 import com.wayfarer.boosterupgrade.util.log
 import com.wayfarer.boosterupgrade.util.olderThan
 import org.jooq.DSLContext
@@ -21,12 +22,32 @@ class EdhRecService(
     val cardService: CardService,
     val edhRecThemeRepository: EdhRecThemeRepository,
     val edhRecRecommendationRepository: EdhRecRecommendationRepository,
+    val preconRepository: PreconRepository,
     @Value("\${update-frequency.edhrec.themes}")
     private val edhRecThemeUpdateTime: Duration,
     val ctx: DSLContext,
 ) {
 
-    private fun updateRecommendationsFor(themeUrl: String) {
+    private fun updateRecommendationsForDeck(deckName: String) {
+        val theme = edhRecThemeRepository.findByPrecon(deckName)
+        if (theme == null) {
+            val commander = preconRepository.findCommanderForDeck(deckName)
+            updateRecommendationsForCard(commander)
+        } else {
+            updateRecommendationsFor(theme.url, theme.fetchedOn)
+        }
+    }
+
+    private fun updateRecommendationsForCard(cardName: String) {
+        val httpGet = "https://edhrec.com/route/"
+            .httpGet(listOf("cc" to cardName)).timeout(90_000).timeoutRead(90_000)
+        log.info("Requesting from EDHREC: ${httpGet.url}")
+        val fullUrl = httpGet.response().second.url.toExternalForm()
+        val url = fullUrl.substringAfter("edhrec.com/")
+        updateRecommendationsFor(url, null)
+    }
+
+    private fun updateRecommendationsFor(themeUrl: String, lastFetchedOn: LocalDateTime?) {
         ctx.transaction { conf ->
             require(themeUrl.startsWith("commanders/")) {
                 "Invalid commander theme $themeUrl"
@@ -35,8 +56,7 @@ class EdhRecService(
                 "Invalid commander theme file $themeUrl"
             }
 
-            val fetched = edhRecThemeRepository.findByIdOptional(themeUrl)
-            if (fetched != null && !fetched.fetchedOn.olderThan(edhRecThemeUpdateTime)) {
+            if (lastFetchedOn != null && !lastFetchedOn.olderThan(edhRecThemeUpdateTime)) {
                 return@transaction
             }
             log.info("Fetching edhrec data for $themeUrl")
@@ -120,8 +140,13 @@ class EdhRecService(
     }
 
     fun getRecommendationsFor(themeUrl: String): List<EdhRecRecommendation> {
-        updateRecommendationsFor(themeUrl)
+        updateRecommendationsFor(themeUrl, edhRecThemeRepository.findByIdOptional(themeUrl)?.fetchedOn)
         return edhRecRecommendationRepository.findByTheme(themeUrl)
+    }
+
+    fun getRecommendationsForDeck(deckName: String): List<EdhRecRecommendation> {
+        updateRecommendationsForDeck(deckName)
+        return edhRecRecommendationRepository.findByDeck(deckName)
     }
 
 }
