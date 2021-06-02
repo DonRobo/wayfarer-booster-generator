@@ -115,13 +115,13 @@ class CardUpdater(
                 val json = gson.fromJson<JsonObject>(it.reader())
                 val data = json["data"].obj
 
-                val name = data["name"].string
+                val preconName = data["name"].string
                 val type = data["type"].string
 
-                if (type == "Commander Deck" && alreadyInserted.add(name)) {
-                    log.debug("Parsing deck \"$name\" (${nextEntry.name})")
+                if (type == "Commander Deck" && alreadyInserted.add(preconName)) {
+                    log.debug("Parsing deck \"$preconName\" (${nextEntry.name})")
                     val pr = PreconRecord().apply {
-                        this.name = name
+                        this.name = preconName
                     }
                     val insertedPrecon = preconRepository.insert(pr)
                     val commanders = data["commander"].array.map {
@@ -136,14 +136,14 @@ class CardUpdater(
                     }
                     val cardRecords = commanders.map { (card, count) ->
                         PreconCardRecord().apply {
-                            this.preconId = insertedPrecon.id
+                            this.precon = preconName
                             this.commander = true
                             this.cardName = card
                             this.count = count
                         }
                     } + cards.map { (card, count) ->
                         PreconCardRecord().apply {
-                            this.preconId = insertedPrecon.id
+                            this.precon = preconName
                             this.commander = false
                             this.cardName = card
                             this.count = count
