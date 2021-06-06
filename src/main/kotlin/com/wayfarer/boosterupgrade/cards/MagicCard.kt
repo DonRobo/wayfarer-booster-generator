@@ -1,6 +1,7 @@
 package com.wayfarer.boosterupgrade.cards
 
 import com.wayfarer.boosterupgrade.cards.CardLayout.*
+import java.math.BigDecimal
 
 enum class CardType(val humanReadableName: String) {
     LAND("Land"),
@@ -144,6 +145,8 @@ data class MagicCard(
     val legalities: Map<MtgFormat, FormatLegality>,
     val layout: CardLayout,
     val edhRecRank: Int,
+    val eurPrice: BigDecimal,
+    val usdPrice: BigDecimal,
 )
 
 val MagicCard.cmc

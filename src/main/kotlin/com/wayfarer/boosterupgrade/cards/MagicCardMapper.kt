@@ -5,9 +5,12 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.wayfarer.boosterupgrade.cards.CardLayout.*
+import com.wayfarer.boosterupgrade.jooq.Tables
 import com.wayfarer.boosterupgrade.util.getOrNull
 import com.wayfarer.boosterupgrade.util.jooq.MtgRecordMapper
 import org.jooq.Record
+import org.jooq.impl.DSL
+import java.math.BigDecimal
 import kotlin.math.roundToInt
 import com.wayfarer.boosterupgrade.jooq.tables.AtomicCard as AtomicCardTable
 
@@ -16,7 +19,22 @@ class MagicCardMapper(
     val gson: Gson
 ) : MtgRecordMapper<MagicCard>() {
 
-    override val fields = listOf(ac.CARD_JSON)
+    private val cpp = Tables.CARD_PRINTING_PRICE
+    private val cp = Tables.CARD_PRINTING
+
+    private val eurPrice = DSL.select(DSL.min(cpp.PRICE_EUR_LAST_WEEK))
+        .from(cpp)
+        .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
+        .where(cp.FULL_NAME.eq(ac.FULL_NAME))
+        .asField<BigDecimal>("eurPrice")
+
+    private val usdPrice = DSL.select(DSL.min(cpp.PRICE_USD_LAST_WEEK))
+        .from(cpp)
+        .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
+        .where(cp.FULL_NAME.eq(ac.FULL_NAME))
+        .asField<BigDecimal>("usdPrice")
+
+    override val fields = listOf(ac.CARD_JSON, eurPrice, usdPrice)
 
     override fun mapData(r: Record): MagicCard {
         val faceJsons = gson.fromJson<JsonArray>(r[ac.CARD_JSON].data())
@@ -38,6 +56,8 @@ class MagicCardMapper(
                     else -> 1000000
                 }
             },
+            eurPrice = r[eurPrice],
+            usdPrice = r[usdPrice],
         )
     }
 }
