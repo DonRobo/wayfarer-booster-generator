@@ -147,7 +147,23 @@ data class MagicCard(
     val edhRecRank: Int,
     val eurPrice: BigDecimal,
     val usdPrice: BigDecimal,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as MagicCard
+
+        if (faces.size != other.faces.size) return false
+        if (faces.map { it.name } != other.faces.map { it.name }) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return faces.joinToString(" // ") { it.name }.hashCode()
+    }
+}
 
 val MagicCard.cmc
     get() = when (layout) {

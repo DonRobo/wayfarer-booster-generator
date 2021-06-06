@@ -1,16 +1,20 @@
 package com.wayfarer.boosterupgrade.edhrec
 
 import com.google.gson.Gson
+import com.wayfarer.boosterupgrade.cards.EUR_PRICE
 import com.wayfarer.boosterupgrade.cards.MagicCardMapper
+import com.wayfarer.boosterupgrade.cards.USD_PRICE
 import com.wayfarer.boosterupgrade.jooq.Tables.*
 import com.wayfarer.boosterupgrade.jooq.tables.records.EdhrecRecommendationRecord
 import com.wayfarer.boosterupgrade.jooq.tables.records.EdhrecThemeRecord
+import com.wayfarer.boosterupgrade.util.chainIfNotNull
 import com.wayfarer.boosterupgrade.util.jooq.CrudJooqRepository
 import com.wayfarer.boosterupgrade.util.jooq.MtgRecordMapper
 import org.jooq.DSLContext
 import org.jooq.Record
 import org.jooq.impl.DSL.*
 import org.springframework.stereotype.Repository
+import java.math.BigDecimal
 import com.wayfarer.boosterupgrade.jooq.tables.EdhrecRecommendation as EdhrecRecommendationTable
 
 @Repository
@@ -70,7 +74,7 @@ class EdhRecRecommendationRepository(
             .fetch(mapper)
     }
 
-    fun findByDeck(deckName: String): List<EdhRecRecommendation> {
+    fun findByDeck(deckName: String, maxEurPrice: Double?, maxUsdPrice: Double?): List<EdhRecRecommendation> {
         val pc2 = PRECON_CARD.`as`("pc2")
 
         return ctx.select(mapper.fields)
@@ -87,6 +91,12 @@ class EdhRecRecommendationRepository(
                         .and(pc2.CARD_NAME.eq(er.CARD))
                 )
             )
+            .chainIfNotNull(maxEurPrice) {
+                and(ac.EUR_PRICE.asField<BigDecimal>().lessOrEqual(it.toBigDecimal()))
+            }
+            .chainIfNotNull(maxUsdPrice) {
+                and(ac.USD_PRICE.asField<BigDecimal>().lessOrEqual(it.toBigDecimal()))
+            }
             .orderBy(er.USAGESCORE.desc(), er.SYNERGYSCORE.desc())
             .fetch(mapper)
     }

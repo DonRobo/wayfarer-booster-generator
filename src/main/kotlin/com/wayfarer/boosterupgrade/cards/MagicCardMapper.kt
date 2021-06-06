@@ -5,36 +5,50 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.wayfarer.boosterupgrade.cards.CardLayout.*
-import com.wayfarer.boosterupgrade.jooq.Tables
+import com.wayfarer.boosterupgrade.jooq.Tables.CARD_PRINTING
+import com.wayfarer.boosterupgrade.jooq.Tables.CARD_PRINTING_PRICE
 import com.wayfarer.boosterupgrade.util.getOrNull
 import com.wayfarer.boosterupgrade.util.jooq.MtgRecordMapper
 import org.jooq.Record
-import org.jooq.impl.DSL
+import org.jooq.Record1
+import org.jooq.SelectConditionStep
+import org.jooq.impl.DSL.*
 import java.math.BigDecimal
 import kotlin.math.roundToInt
 import com.wayfarer.boosterupgrade.jooq.tables.AtomicCard as AtomicCardTable
+
+val AtomicCardTable.EUR_PRICE: SelectConditionStep<Record1<BigDecimal>>
+    get() {
+        val cpp = CARD_PRINTING_PRICE
+        val cp = CARD_PRINTING
+
+        return select(min(cpp.PRICE_EUR_LAST_WEEK))
+            .from(cpp)
+            .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
+            .where(cp.FULL_NAME.eq(FULL_NAME))
+    }
+
+val AtomicCardTable.USD_PRICE: SelectConditionStep<Record1<BigDecimal>>
+    get() {
+        val cpp = CARD_PRINTING_PRICE
+        val cp = CARD_PRINTING
+
+        return select(min(cpp.PRICE_USD_LAST_WEEK))
+            .from(cpp)
+            .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
+            .where(cp.FULL_NAME.eq(FULL_NAME))
+    }
 
 class MagicCardMapper(
     val ac: AtomicCardTable,
     val gson: Gson
 ) : MtgRecordMapper<MagicCard>() {
 
-    private val cpp = Tables.CARD_PRINTING_PRICE
-    private val cp = Tables.CARD_PRINTING
-
-    private val eurPrice = DSL.select(DSL.min(cpp.PRICE_EUR_LAST_WEEK))
-        .from(cpp)
-        .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
-        .where(cp.FULL_NAME.eq(ac.FULL_NAME))
-        .asField<BigDecimal>("eurPrice")
-
-    private val usdPrice = DSL.select(DSL.min(cpp.PRICE_USD_LAST_WEEK))
-        .from(cpp)
-        .join(cp).on(cp.UUID.eq(cpp.CARD_PRINTING))
-        .where(cp.FULL_NAME.eq(ac.FULL_NAME))
-        .asField<BigDecimal>("usdPrice")
-
-    override val fields = listOf(ac.CARD_JSON, eurPrice, usdPrice)
+    override val fields = listOf(
+        ac.CARD_JSON,
+        ac.EUR_PRICE.asField<BigDecimal>("eurPrice"),
+        ac.USD_PRICE.asField<BigDecimal>("usdPrice")
+    )
 
     override fun mapData(r: Record): MagicCard {
         val faceJsons = gson.fromJson<JsonArray>(r[ac.CARD_JSON].data())
@@ -56,8 +70,8 @@ class MagicCardMapper(
                     else -> 1000000
                 }
             },
-            eurPrice = r[eurPrice],
-            usdPrice = r[usdPrice],
+            eurPrice = r.get(field("eurPrice", BigDecimal::class.java)),
+            usdPrice = r.get(field("usdPrice", BigDecimal::class.java)),
         )
     }
 }

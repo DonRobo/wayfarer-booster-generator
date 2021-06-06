@@ -1,5 +1,7 @@
 package com.wayfarer.boosterupgrade.util
 
+import java.util.*
+
 fun String.withoutSections(sectionStart: String, sectionEnd: String): String {
     val stringBuilder = StringBuilder()
 
@@ -15,3 +17,6 @@ fun String.withoutSections(sectionStart: String, sectionEnd: String): String {
 
     return stringBuilder.toString().trim()
 }
+
+val Number.asEuros: String
+    get() = String.format(Locale.ENGLISH, "%.2f€", this.toDouble())

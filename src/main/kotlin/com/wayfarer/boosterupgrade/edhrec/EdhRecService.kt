@@ -144,9 +144,13 @@ class EdhRecService(
         return edhRecRecommendationRepository.findByTheme(themeUrl)
     }
 
-    fun getRecommendationsForDeck(deckName: String): List<EdhRecRecommendation> {
+    fun getRecommendationsForDeck(
+        deckName: String,
+        maxEurPrice: Double?,
+        maxUsdPrice: Double?
+    ): List<EdhRecRecommendation> {
         updateRecommendationsForDeck(deckName)
-        return edhRecRecommendationRepository.findByDeck(deckName)
+        return edhRecRecommendationRepository.findByDeck(deckName, maxEurPrice, maxUsdPrice)
     }
 
 }
