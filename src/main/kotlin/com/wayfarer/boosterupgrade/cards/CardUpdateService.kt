@@ -14,14 +14,17 @@ import com.wayfarer.boosterupgrade.util.*
 import com.wayfarer.boosterupgrade.util.jooq.executeDeferConstraints
 import org.jooq.DSLContext
 import org.jooq.JSONB
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.net.URL
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipInputStream
 import javax.annotation.PostConstruct
+import kotlin.concurrent.withLock
 
 @Component
 class CardUpdater(
@@ -75,33 +78,37 @@ class CardUpdater(
         }
     }
 
-    //TODO also on schedule
+    private val lock = ReentrantLock()
+
     @PostConstruct
+    @Scheduled(cron = "10 10 2 * * *")
     fun updateCardData() {
-        ctx.transaction { conf ->
-            val onlineVersion = try {
-                gson.fromJson<MtgJsonVersionData>(
-                    gson.fromJson<JsonObject>(
-                        META_JSON_URL.httpGet().responseString().third.get()
-                    )["meta"]
-                )
-            } catch (ex: FuelError) {
-                log.error("Couldn't fetch meta json", ex)
-                null
-            }
+        lock.withLock {
+            ctx.transaction { conf ->
+                val onlineVersion = try {
+                    gson.fromJson<MtgJsonVersionData>(
+                        gson.fromJson<JsonObject>(
+                            META_JSON_URL.httpGet().responseString().third.get()
+                        )["meta"]
+                    )
+                } catch (ex: FuelError) {
+                    log.error("Couldn't fetch meta json", ex)
+                    null
+                }
 
-            val currentVersion = updateRepository.findNewest()
-            if (onlineVersion != null && (currentVersion == null || currentVersion.version != onlineVersion.version)) {
-                log.info("Updating from ${currentVersion?.version ?: "<no cards installed>"} to ${onlineVersion.version}")
+                val currentVersion = updateRepository.findNewest()
+                if (onlineVersion != null && (currentVersion == null || currentVersion.version != onlineVersion.version)) {
+                    log.info("Updating from ${currentVersion?.version ?: "<no cards installed>"} to ${onlineVersion.version}")
 
-                ctx.executeDeferConstraints()
+                    ctx.executeDeferConstraints()
 
-                updateAtomicCards()
-                updatePrecons()
-                updateCardPrintings()
-                updateCardPrices()
+                    updateAtomicCards()
+                    updatePrecons()
+                    updateCardPrintings()
+                    updateCardPrices()
 
-                updateRepository.insertUpdate(onlineVersion.date, onlineVersion.version)
+                    updateRepository.insertUpdate(onlineVersion.date, onlineVersion.version)
+                }
             }
         }
     }

@@ -3,7 +3,6 @@ package com.wayfarer.boosterupgrade.wayfarer
 import com.wayfarer.boosterupgrade.cards.*
 import com.wayfarer.boosterupgrade.edhrec.EdhRecRecommendation
 import com.wayfarer.boosterupgrade.edhrec.EdhRecService
-import com.wayfarer.boosterupgrade.util.log
 import org.springframework.stereotype.Service
 
 @Service
@@ -55,8 +54,6 @@ class UpgradeBoosterService(
         fun choose(block: (EdhRecRecommendation) -> Boolean) {
             val card = filteredWeightedRecs().first { block(it) }.card
             chosen += card
-
-            log.info("Chose ${card.fullName}. Remaining ${remainingBudget()} of the budget, ${missingCards()} cards")
         }
 
 
