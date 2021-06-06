@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.math.BigDecimal
 
 @RestController
 @RequestMapping("/api/booster")
@@ -47,8 +48,8 @@ class BoosterController(
         )
 
         return gen.joinToString("\n") {
-            it.fullName + " " + it.eurPrice.asEuros
-        } + "\n${gen.sumOf { it.eurPrice }}"
+            it.fullName + " " + (it.eurPrice?.asEuros ?: "No price data")
+        } + "\n${gen.sumOf { it.eurPrice ?: BigDecimal.TEN }}"
     }
 
 }

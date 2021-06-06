@@ -43,7 +43,7 @@ class EdhRecService(
             .httpGet(listOf("cc" to cardName)).timeout(90_000).timeoutRead(90_000)
         log.info("Requesting from EDHREC: ${httpGet.url}")
         val fullUrl = httpGet.response().second.url.toExternalForm()
-        val url = fullUrl.substringAfter("edhrec.com/")
+        val url = fullUrl.substringAfter("edhrec.com/") + ".json"
         updateRecommendationsFor(url, null)
     }
 
@@ -123,7 +123,7 @@ class EdhRecService(
                     it.synergy,
                     it.usage
                 )
-            }
+            }.distinctBy { it.card }
             log.info("Found ${records.size} recommendations")
             edhRecThemeRepository.upsert(
                 EdhrecThemeRecord(

@@ -145,8 +145,8 @@ data class MagicCard(
     val legalities: Map<MtgFormat, FormatLegality>,
     val layout: CardLayout,
     val edhRecRank: Int,
-    val eurPrice: BigDecimal,
-    val usdPrice: BigDecimal,
+    val eurPrice: BigDecimal?,
+    val usdPrice: BigDecimal?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

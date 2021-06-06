@@ -36,7 +36,7 @@ class UpgradeBoosterService(
 
         val chosen = HashSet<MagicCard>()
 
-        fun MagicCard.price() = (if (useEuro) eurPrice else usdPrice).toDouble()
+        fun MagicCard.price() = (if (useEuro) eurPrice else usdPrice)?.toDouble() ?: 10.0
         fun MagicCard.isCreature() = playableFaces.any { it.types.contains(CardType.CREATURE) }
         fun MagicCard.isLand() = playableFaces.first().isLand
         fun MagicCard.isNonCreature() = !isLand() && !isCreature()

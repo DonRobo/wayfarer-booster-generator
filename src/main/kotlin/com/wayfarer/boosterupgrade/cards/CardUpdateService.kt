@@ -45,39 +45,6 @@ class CardUpdater(
         private const val META_JSON_URL = "https://mtgjson.com/api/v5/Meta.json"
     }
 
-    private fun retrieveAtomicCards(): List<AtomicCardRecord> {
-        log.info("Downloading atomic cards json")
-        ZipInputStream(URL(ATOMIC_CARDS_JSON_URL).openStream()).use {
-            it.nextEntry ?: error("Couldn't read atomic cards zip")
-            val json = gson.fromJson<JsonObject>(it.bufferedReader())["data"].obj
-            return json.entrySet().map { (_, cardJson) ->
-                val faceJsons = cardJson.array
-                val faces = faceJsons.sortedBy { it.getOrNull("side")?.nullString ?: "AAA" }
-
-                fun JsonElement.faceName(): String {
-                    return this.getOrNull("faceName")?.nullString ?: this["name"].string
-                }
-
-                AtomicCardRecord().apply {
-                    this.fullName = faces.first()["name"].string
-                    this.cardJson = JSONB.jsonb(JsonArray().apply {
-                        faces.forEach { face ->
-                            add(face)
-                        }
-                    }.toString())
-                    this.names = faces.map { it.faceName() }.toTypedArray()
-                    this.firstName = names.first()
-
-                    if (!faces.first()["identifiers"].obj.has("scryfallOracleId")) {
-                        error(cardJson.toString())
-                    }
-
-                    this.scryfallId = faces.first()["identifiers"]["scryfallOracleId"].string
-                }
-            }
-        }
-    }
-
     private val lock = ReentrantLock()
 
     @PostConstruct
@@ -114,11 +81,59 @@ class CardUpdater(
     }
 
     private fun updateAtomicCards() {
-        val newCards = retrieveAtomicCards()
-        log.info("Retrieved ${newCards.size} new cards")
+        log.info("Downloading atomic cards json")
+
         atomicCardRepository.deleteAll()
-        val inserted = atomicCardRepository.insertAll(newCards)
-        log.info("Inserted $inserted cards")
+
+        val records = ArrayList<AtomicCardRecord>()
+        fun flushRecords() {
+            atomicCardRepository.insertAll(records)
+            log.info("Inserted ${records.size} atomic cards")
+            records.clear()
+        }
+
+        ZipInputStream(URL(ATOMIC_CARDS_JSON_URL).openStream()).apply { requireNotNull(nextEntry) }.reader()
+            .use { reader ->
+                val jsonReader = gson.newJsonReader(reader)
+                jsonReader.beginObject()
+                jsonReader.untilProperty("data")
+                jsonReader.beginObject()
+
+                while (jsonReader.hasNext()) {
+                    val cardName = jsonReader.nextName()
+                    val cardJson = gson.fromJson<JsonArray>(jsonReader)
+
+                    val faceJsons = cardJson.array
+                    val faces = faceJsons.sortedBy { it.getOrNull("side")?.nullString ?: "AAA" }
+
+                    fun JsonElement.faceName(): String {
+                        return getOrNull("faceName")?.nullString ?: this["name"].string
+                    }
+
+                    records += AtomicCardRecord().apply {
+                        fullName = cardName
+                        this.cardJson = JSONB.jsonb(JsonArray().apply {
+                            faces.forEach { face ->
+                                add(face)
+                            }
+                        }.toString())
+                        names = faces.map { it.faceName() }.toTypedArray()
+                        firstName = names.first()
+
+                        if (!faces.first()["identifiers"].obj.has("scryfallOracleId")) {
+                            error(cardJson.toString())
+                        }
+
+                        scryfallId = faces.first()["identifiers"]["scryfallOracleId"].string
+                    }
+
+                    if (records.size >= 1000) {
+                        flushRecords()
+                    }
+                }
+            }
+
+        flushRecords()
     }
 
     private fun updateCardPrintings() {
