@@ -1,7 +1,9 @@
 package com.wayfarer.boosterupgrade.precon
 
-import com.wayfarer.boosterupgrade.jooq.Tables.PRECON
-import com.wayfarer.boosterupgrade.jooq.Tables.PRECON_CARD
+import com.google.gson.Gson
+import com.wayfarer.boosterupgrade.cards.MagicCard
+import com.wayfarer.boosterupgrade.cards.MagicCardMapper
+import com.wayfarer.boosterupgrade.jooq.Tables.*
 import com.wayfarer.boosterupgrade.jooq.tables.records.PreconCardRecord
 import com.wayfarer.boosterupgrade.jooq.tables.records.PreconRecord
 import com.wayfarer.boosterupgrade.util.jooq.CrudJooqRepository
@@ -10,7 +12,8 @@ import org.springframework.stereotype.Repository
 
 @Repository
 class PreconRepository(
-    ctx: DSLContext
+    ctx: DSLContext,
+    val gson: Gson,
 ) : CrudJooqRepository<PreconRecord>(ctx, PRECON) {
     private val pc = PRECON_CARD.`as`("pc")
 
@@ -21,6 +24,19 @@ class PreconRepository(
             .and(pc.PRECON.eq(deckName))
             .fetchSingle()
             .value1()
+    }
+
+    fun fetchPreconsWithCommander(): Map<String, MagicCard> {
+        val ac = ATOMIC_CARD.`as`("ac")
+        val cardMapper = MagicCardMapper(ac, gson)
+
+        return ctx.select(cardMapper.fields + pc.PRECON)
+            .from(pc)
+            .join(ac).on(ac.FULL_NAME.eq(pc.CARD_NAME))
+            .where(pc.COMMANDER)
+            .fetch { r ->
+                r[pc.PRECON] to cardMapper.map(r)
+            }.toMap()
     }
 }
 

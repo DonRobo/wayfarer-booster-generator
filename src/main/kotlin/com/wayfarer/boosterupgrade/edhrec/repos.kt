@@ -33,7 +33,6 @@ class EdhRecThemeRepository(
             .fetchOptionalInto(et)
             .orElse(null)
     }
-
 }
 
 class EdhRecRecommendationMapper(
@@ -42,7 +41,7 @@ class EdhRecRecommendationMapper(
 ) : MtgRecordMapper<EdhRecRecommendation>() {
     override val fields = listOf(er.CARD, er.USAGESCORE, er.SYNERGYSCORE) + cardMapper.fields
 
-    override fun mapData(r: Record): EdhRecRecommendation {
+    override fun map(r: Record): EdhRecRecommendation {
         return EdhRecRecommendation(cardMapper.map(r), r[er.SYNERGYSCORE], r[er.USAGESCORE])
     }
 }

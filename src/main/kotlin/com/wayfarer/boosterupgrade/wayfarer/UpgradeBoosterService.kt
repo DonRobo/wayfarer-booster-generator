@@ -3,11 +3,18 @@ package com.wayfarer.boosterupgrade.wayfarer
 import com.wayfarer.boosterupgrade.cards.*
 import com.wayfarer.boosterupgrade.edhrec.EdhRecRecommendation
 import com.wayfarer.boosterupgrade.edhrec.EdhRecService
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class UpgradeBoosterService(
     private val edhRecService: EdhRecService,
+    @Value("\${booster.usage-weight}")
+    private val usageWeight: Double,
+    @Value("\${booster.synergy-weight}")
+    private val synergyWeight: Double,
+    @Value("\${booster.random-weight}")
+    private val randomWeight: Double,
 ) {
 
     fun generateBoosterForTheme(themeUrl: String, boosterPrice: Double, useEuro: Boolean): List<MagicCard> {
@@ -31,8 +38,9 @@ class UpgradeBoosterService(
         boosterPriceLimit: Double,
         useEuro: Boolean
     ): List<MagicCard> {
-        val weightedRecs = recs.map { it to (it.synergyScore / 100.0 + it.usageScore / 100.0 + Math.random() * 3.0) }
-            .sortedByDescending { it.second }
+        val weightedRecs =
+            recs.map { it to ((it.synergyScore / 100.0) * synergyWeight + (it.usageScore / 100.0) * usageWeight + Math.random() * randomWeight) }
+                .sortedByDescending { it.second }
 
         val chosen = HashSet<MagicCard>()
 

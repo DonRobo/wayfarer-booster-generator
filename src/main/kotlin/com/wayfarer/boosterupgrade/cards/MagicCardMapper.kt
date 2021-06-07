@@ -50,7 +50,7 @@ class MagicCardMapper(
         ac.USD_PRICE.asField<BigDecimal>("usdPrice")
     )
 
-    override fun mapData(r: Record): MagicCard {
+    override fun map(r: Record): MagicCard {
         val faceJsons = gson.fromJson<JsonArray>(r[ac.CARD_JSON].data())
         val faces = faceJsons.map { it.obj.toMagicCardFace() }
 
