@@ -3,48 +3,81 @@ package com.wayfarer.boosterupgrade.wayfarer
 import com.wayfarer.boosterupgrade.cards.*
 import com.wayfarer.boosterupgrade.edhrec.EdhRecRecommendation
 import com.wayfarer.boosterupgrade.edhrec.EdhRecService
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class UpgradeBoosterService(
     private val edhRecService: EdhRecService,
-    @Value("\${booster.usage-weight}")
-    private val usageWeight: Double,
-    @Value("\${booster.synergy-weight}")
-    private val synergyWeight: Double,
-    @Value("\${booster.random-weight}")
-    private val randomWeight: Double,
 ) {
 
-    fun generateBoosterForTheme(themeUrl: String, boosterPrice: Double, useEuro: Boolean): List<MagicCard> {
+    fun generateBoosterForTheme(
+        themeUrl: String,
+        boosterPrice: Double,
+        singlePrice: Double,
+        useEuro: Boolean,
+        usageWeight: Double,
+        synergyWeight: Double,
+        randomWeight: Double,
+    ): List<MagicCard> {
         val recs = edhRecService.getRecommendationsFor(themeUrl)
 
-        return generateBooster(recs, boosterPrice, useEuro)
+        return generateBooster(
+            recs = recs,
+            boosterPriceLimit = boosterPrice,
+            singlePriceLimit = singlePrice,
+            useEuro = useEuro,
+            usageWeight = usageWeight,
+            synergyWeight = synergyWeight,
+            randomWeight = randomWeight
+        )
     }
 
-    fun generateBoosterForPrecon(deckName: String, boosterPrice: Double, useEuro: Boolean): List<MagicCard> {
+    fun generateBoosterForPrecon(
+        deckName: String,
+        boosterPrice: Double,
+        singlePrice: Double,
+        useEuro: Boolean,
+        usageWeight: Double,
+        synergyWeight: Double,
+        randomWeight: Double,
+    ): List<MagicCard> {
         val recs = edhRecService.getRecommendationsForDeck(
             deckName = deckName,
             maxEurPrice = if (useEuro) boosterPrice else null,
             maxUsdPrice = if (!useEuro) boosterPrice else null
         )
 
-        return generateBooster(recs, boosterPrice, useEuro)
+        return generateBooster(
+            recs = recs,
+            boosterPriceLimit = boosterPrice,
+            singlePriceLimit = singlePrice,
+            useEuro = useEuro,
+            usageWeight = usageWeight,
+            synergyWeight = synergyWeight,
+            randomWeight = randomWeight
+        )
     }
 
     private fun generateBooster(
         recs: List<EdhRecRecommendation>,
         boosterPriceLimit: Double,
-        useEuro: Boolean
+        singlePriceLimit: Double,
+        useEuro: Boolean,
+        usageWeight: Double,
+        synergyWeight: Double,
+        randomWeight: Double,
     ): List<MagicCard> {
+        fun MagicCard.price() = (if (useEuro) eurPrice else usdPrice)?.toDouble() ?: 10.0
+
         val weightedRecs =
             recs.map { it to ((it.synergyScore / 100.0) * synergyWeight + (it.usageScore / 100.0) * usageWeight + Math.random() * randomWeight) }
+                .filter {
+                    it.first.card.price() <= singlePriceLimit
+                }
                 .sortedByDescending { it.second }
 
         val chosen = HashSet<MagicCard>()
 
-        fun MagicCard.price() = (if (useEuro) eurPrice else usdPrice)?.toDouble() ?: 10.0
         fun MagicCard.isCreature() = playableFaces.any { it.types.contains(CardType.CREATURE) }
         fun MagicCard.isLand() = playableFaces.first().isLand
         fun MagicCard.isNonCreature() = !isLand() && !isCreature()
