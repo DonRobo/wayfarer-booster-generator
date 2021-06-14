@@ -1,8 +1,8 @@
 package com.wayfarer.boosterupgrade.controller
 
+import com.wayfarer.boosterupgrade.cards.CardService
 import com.wayfarer.boosterupgrade.cards.MagicCard
 import com.wayfarer.boosterupgrade.cards.fullName
-import com.wayfarer.boosterupgrade.edhrec.EdhRecService
 import com.wayfarer.boosterupgrade.util.asEuros
 import com.wayfarer.boosterupgrade.wayfarer.UpgradeBoosterService
 import org.springframework.beans.factory.annotation.Value
@@ -16,8 +16,8 @@ import java.math.BigDecimal
 @RestController
 @RequestMapping("/api/booster")
 class BoosterController(
-    val edhRecService: EdhRecService,
     val boosterService: UpgradeBoosterService,
+    val cardService: CardService,
     @Value("\${booster-price.eur}")
     private val boosterPriceEurDefault: Double,
     @Value("\${booster-price.usd}")

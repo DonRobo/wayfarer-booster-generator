@@ -16,6 +16,7 @@ import org.jooq.impl.DSL.*
 import java.math.BigDecimal
 import kotlin.math.roundToInt
 import com.wayfarer.boosterupgrade.jooq.tables.AtomicCard as AtomicCardTable
+import com.wayfarer.boosterupgrade.jooq.tables.AtomicCardId as AtomicCardIdTable
 
 val AtomicCardTable.EUR_PRICE: SelectConditionStep<Record1<BigDecimal>>
     get() {
@@ -41,13 +42,16 @@ val AtomicCardTable.USD_PRICE: SelectConditionStep<Record1<BigDecimal>>
 
 class MagicCardMapper(
     val ac: AtomicCardTable,
+    val aci: AtomicCardIdTable,
     val gson: Gson
 ) : MtgRecordMapper<MagicCard>() {
 
     override val fields = listOf(
         ac.CARD_JSON,
+        ac.SCRYFALL_ID,
         ac.EUR_PRICE.asField<BigDecimal>("eurPrice"),
-        ac.USD_PRICE.asField<BigDecimal>("usdPrice")
+        ac.USD_PRICE.asField<BigDecimal>("usdPrice"),
+        aci.ID,
     )
 
     override fun map(r: Record): MagicCard {
@@ -55,15 +59,10 @@ class MagicCardMapper(
         val faces = faceJsons.map { it.obj.toMagicCardFace() }
 
         return MagicCard(
-            faces,
-            faceJsons[0]["legalities"].let { j ->
-                MtgFormat.values().map {
-                    val legalityStr = j.getOrNull(it.formatName)?.nullString
-                    it to (legalityStr?.let { FormatLegality.fromName(it) } ?: FormatLegality.NOT_LEGAL)
-                }.toMap()
-            },
-            CardLayout.fromDatabaseName(faceJsons.first()["layout"].string),
-            faceJsons.first().obj.let {
+            faces = faces,
+            id = r[aci.ID],
+            layout = CardLayout.fromDatabaseName(faceJsons.first()["layout"].string),
+            edhRecRank = faceJsons.first().obj.let {
                 when {
                     it.has("edhrecRank") -> it["edhrecRank"].int
                     faces.first().superTypes.contains(SuperType.BASIC) -> 0

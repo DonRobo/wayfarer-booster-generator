@@ -59,4 +59,8 @@ class CardService(
         return fixedNames
     }
 
+    fun getCardsByIds(cardIds: List<Int>): List<MagicCard> {
+        return atomicCardRepository.findByAtomicCardIds(cardIds)
+    }
+
 }

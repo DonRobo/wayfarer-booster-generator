@@ -142,7 +142,7 @@ enum class MtgFormat(
 
 data class MagicCard(
     val faces: List<MagicCardFace>,
-    val legalities: Map<MtgFormat, FormatLegality>,
+    val id: Int,
     val layout: CardLayout,
     val edhRecRank: Int,
     val eurPrice: BigDecimal?,
@@ -172,14 +172,6 @@ val MagicCard.cmc
         MODAL, MELD, ADVENTURE, TRANSFORM, FLIP -> faces.first().cmc
         AUGMENT, HOST, VANGUARD, PLANAR, SCHEME -> faces.sumOf { it.cmc } //hope that's correct
     }
-
-fun MagicCard.legalIn(format: MtgFormat): Boolean {
-    return when (legalities[format]) {
-        FormatLegality.RESTRICTED, FormatLegality.LEGAL -> true
-        FormatLegality.BANNED -> false
-        FormatLegality.NOT_LEGAL, null -> format == MtgFormat.COMMANDER
-    }
-}
 
 fun MagicCard.canBeCastWith(colors: Set<CardColor>?) =
     playableFaces.filter { !it.isLand }.any { it.canBeCastWith(colors) }

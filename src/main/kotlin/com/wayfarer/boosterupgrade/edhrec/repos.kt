@@ -54,9 +54,10 @@ class EdhRecRecommendationRepository(
 
     private val er = EDHREC_RECOMMENDATION.`as`("er")
     private val ac = ATOMIC_CARD.`as`("ac")
+    private val aci = ATOMIC_CARD_ID.`as`("aci")
     private val pc = PRECON_CARD.`as`("pc")
     private val et = EDHREC_THEME.`as`("et")
-    private val mapper = EdhRecRecommendationMapper(er, MagicCardMapper(ac, gson))
+    private val mapper = EdhRecRecommendationMapper(er, MagicCardMapper(ac, aci, gson))
 
     fun deleteByTheme(themeUrl: String): Int {
         return ctx.deleteFrom(er)
@@ -68,6 +69,7 @@ class EdhRecRecommendationRepository(
         return ctx.select(mapper.fields)
             .from(er)
             .join(ac).on(ac.FULL_NAME.eq(er.CARD))
+            .join(aci).on(ac.FULL_NAME.eq(aci.ATOMIC_CARD_NAME))
             .where(er.THEME.eq(themeUrl))
             .orderBy(er.USAGESCORE.desc(), er.SYNERGYSCORE.desc())
             .fetch(mapper)
@@ -79,6 +81,7 @@ class EdhRecRecommendationRepository(
         return ctx.select(mapper.fields)
             .from(er)
             .join(ac).on(ac.FULL_NAME.eq(er.CARD))
+            .join(aci).on(ac.FULL_NAME.eq(aci.ATOMIC_CARD_NAME))
             .join(et).on(et.URL.eq(er.THEME))
             .join(pc).on(et.COMMANDER.eq(pc.CARD_NAME).and(pc.COMMANDER))
             .where(pc.PRECON.eq(deckName))

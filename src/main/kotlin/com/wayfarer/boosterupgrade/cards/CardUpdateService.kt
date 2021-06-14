@@ -36,6 +36,7 @@ class CardUpdater(
     val preconCardRepository: PreconCardRepository,
     val cardPrintingRepository: CardPrintingRepository,
     val cardPriceRepository: CardPriceRepository,
+    val cardIdRepository: CardIdRepository,
 ) {
     companion object {
         private const val ATOMIC_CARDS_JSON_URL = "https://mtgjson.com/api/v5/AtomicCards.json.zip"
@@ -73,6 +74,9 @@ class CardUpdater(
                     updatePrecons()
                     updateCardPrintings()
                     updateCardPrices()
+
+                    val updatedIds = cardIdRepository.updateCardIds()
+                    log.info("Updated $updatedIds card ids")
 
                     updateRepository.insertUpdate(onlineVersion.date, onlineVersion.version)
                 }

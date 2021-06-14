@@ -28,11 +28,13 @@ class PreconRepository(
 
     fun fetchPreconsWithCommander(): Map<String, MagicCard> {
         val ac = ATOMIC_CARD.`as`("ac")
-        val cardMapper = MagicCardMapper(ac, gson)
+        val aci = ATOMIC_CARD_ID.`as`("aci")
+        val cardMapper = MagicCardMapper(ac, aci, gson)
 
         return ctx.select(cardMapper.fields + pc.PRECON)
             .from(pc)
             .join(ac).on(ac.FULL_NAME.eq(pc.CARD_NAME))
+            .join(aci).on(ac.FULL_NAME.eq(aci.ATOMIC_CARD_NAME))
             .where(pc.COMMANDER)
             .fetch { r ->
                 r[pc.PRECON] to cardMapper.map(r)
