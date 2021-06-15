@@ -2,8 +2,7 @@ package com.wayfarer.boosterupgrade.controller
 
 import com.wayfarer.boosterupgrade.cards.CardService
 import com.wayfarer.boosterupgrade.cards.MagicCard
-import com.wayfarer.boosterupgrade.cards.fullName
-import com.wayfarer.boosterupgrade.util.asEuros
+import com.wayfarer.boosterupgrade.cards.firstName
 import com.wayfarer.boosterupgrade.wayfarer.UpgradeBoosterService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.math.BigDecimal
 
 @RestController
 @RequestMapping("/api/booster")
@@ -77,8 +75,8 @@ class BoosterController(
 
 
         return gen.joinToString("\n") {
-            it.fullName + " " + (it.eurPrice?.asEuros ?: "No price data")
-        } + "\n${gen.sumOf { it.eurPrice ?: BigDecimal.TEN }}"
+            "1 " + it.firstName
+        }
     }
 
 }
