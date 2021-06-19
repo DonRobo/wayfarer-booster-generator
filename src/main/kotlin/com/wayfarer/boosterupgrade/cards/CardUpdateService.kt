@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component
 import java.net.URL
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipInputStream
@@ -221,7 +222,7 @@ class CardUpdater(
 
                     fun ArrayList<Pair<LocalDate, Double>>.addEntries(provider: JsonObject?, type: String) {
                         provider?.getOrNull(type)?.nullObj?.toMap()?.entries?.forEach {
-                            val date = parseIsoDate(it.key)
+                            val date = LocalDate.parse(it.key, DateTimeFormatter.ISO_DATE)
                             val price = it.value.double
                             add(date to price)
                         }
