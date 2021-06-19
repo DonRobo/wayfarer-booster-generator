@@ -114,4 +114,32 @@ class UpgradeBoosterService(
         return chosen.sortedBy { it.edhRecRank }
     }
 
+    fun generateBoosterForDeck(
+        themeUrl: String,
+        deck: List<String>,
+        boosterPrice: Double,
+        singlePrice: Double,
+        useEuro: Boolean,
+        usageWeight: Double,
+        synergyWeight: Double,
+        randomWeight: Double
+    ): List<MagicCard> {
+        val recs = edhRecService.getRecommendationsForTheme(
+            theme = themeUrl,
+            deckList = deck,
+            maxEurPrice = if (useEuro) boosterPrice else null,
+            maxUsdPrice = if (!useEuro) boosterPrice else null
+        )
+
+        return generateBooster(
+            recs = recs,
+            boosterPriceLimit = boosterPrice,
+            singlePriceLimit = singlePrice,
+            useEuro = useEuro,
+            usageWeight = usageWeight,
+            synergyWeight = synergyWeight,
+            randomWeight = randomWeight
+        )
+    }
+
 }

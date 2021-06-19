@@ -65,12 +65,26 @@ class EdhRecRecommendationRepository(
             .execute()
     }
 
-    fun findByTheme(themeUrl: String): List<EdhRecRecommendation> {
+    fun findByTheme(
+        themeUrl: String,
+        excludeCards: List<String> = emptyList(),
+        maxEurPrice: Double? = null,
+        maxUsdPrice: Double? = null,
+    ): List<EdhRecRecommendation> {
         return ctx.select(mapper.fields)
             .from(er)
             .join(ac).on(ac.FULL_NAME.eq(er.CARD))
             .join(aci).on(ac.FULL_NAME.eq(aci.ATOMIC_CARD_NAME))
-            .where(er.THEME.eq(themeUrl))
+            .join(et).on(et.URL.eq(er.THEME))
+            .where(et.URL.eq(themeUrl))
+            .and(ac.FIRST_NAME.notIn(excludeCards))
+            .and(ac.FULL_NAME.notIn(excludeCards))
+            .chainIfNotNull(maxEurPrice) {
+                and(ac.EUR_PRICE.asField<BigDecimal>().lessOrEqual(it.toBigDecimal()))
+            }
+            .chainIfNotNull(maxUsdPrice) {
+                and(ac.USD_PRICE.asField<BigDecimal>().lessOrEqual(it.toBigDecimal()))
+            }
             .orderBy(er.USAGESCORE.desc(), er.SYNERGYSCORE.desc())
             .fetch(mapper)
     }

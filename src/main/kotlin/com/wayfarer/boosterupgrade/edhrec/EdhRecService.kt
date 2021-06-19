@@ -38,6 +38,11 @@ class EdhRecService(
         }
     }
 
+    private fun updateRecommendationsFor(themeUrl: String) {
+        val theme = edhRecThemeRepository.findByIdOptional("$themeUrl.json")
+        updateRecommendationsFor("$themeUrl.json", theme?.fetchedOn)
+    }
+
     private fun updateRecommendationsForCard(cardName: String) {
         val httpGet = "https://edhrec.com/route/"
             .httpGet(listOf("cc" to cardName)).timeout(90_000).timeoutRead(90_000)
@@ -151,6 +156,16 @@ class EdhRecService(
     ): List<EdhRecRecommendation> {
         updateRecommendationsForDeck(deckName)
         return edhRecRecommendationRepository.findByDeck(deckName, maxEurPrice, maxUsdPrice)
+    }
+
+    fun getRecommendationsForTheme(
+        theme: String,
+        deckList: List<String>,
+        maxEurPrice: Double?,
+        maxUsdPrice: Double?
+    ): List<EdhRecRecommendation> {
+        updateRecommendationsFor(theme)
+        return edhRecRecommendationRepository.findByTheme("$theme.json", deckList, maxEurPrice, maxUsdPrice)
     }
 
 }

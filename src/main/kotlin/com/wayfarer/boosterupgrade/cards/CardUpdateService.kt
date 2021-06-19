@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component
 import java.net.URL
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipInputStream
@@ -145,9 +144,13 @@ class CardUpdater(
 
         cardPrintingRepository.deleteAll()
 
+        val alreadyInserted = mutableSetOf<UUID>()
         val records = ArrayList<CardPrintingRecord>()
         fun flushRecords() {
-            cardPrintingRepository.insertAll(records)
+            cardPrintingRepository.insertAll(records.filter { it.uuid !in alreadyInserted }.distinctBy { it.uuid }
+                .also {
+                    alreadyInserted.addAll(it.map { it.uuid })
+                })
             log.info("Inserted ${records.size} card printings")
             records.clear()
         }
@@ -198,6 +201,7 @@ class CardUpdater(
             log.info("Inserted ${records.size} card prices")
             records.clear()
         }
+
         ZipInputStream(URL(CARD_PRICES_JSON_URL).openStream()).apply { requireNotNull(nextEntry) }.reader()
             .use { reader ->
                 val jsonReader = gson.newJsonReader(reader)
@@ -217,7 +221,7 @@ class CardUpdater(
 
                     fun ArrayList<Pair<LocalDate, Double>>.addEntries(provider: JsonObject?, type: String) {
                         provider?.getOrNull(type)?.nullObj?.toMap()?.entries?.forEach {
-                            val date = LocalDate.parse(it.key, DateTimeFormatter.ISO_DATE)
+                            val date = parseIsoDate(it.key)
                             val price = it.value.double
                             add(date to price)
                         }
