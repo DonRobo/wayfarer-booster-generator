@@ -99,6 +99,7 @@ enum class CardLayout(val databaseName: String) {
     FLIP("flip"),
     LEVELER("leveler"),
     SAGA("saga"),
+    CLASS("class"),
     TRANSFORM("transform"),
     ADVENTURE("adventure"),
     MELD("meld"),
@@ -167,7 +168,7 @@ data class MagicCard(
 
 val MagicCard.cmc
     get() = when (layout) {
-        SAGA, LEVELER, NORMAL -> faces.single().cmc
+        SAGA, CLASS, LEVELER, NORMAL -> faces.single().cmc
         SPLIT, AFTERMATH -> faces.sumOf { it.cmc }
         MODAL, MELD, ADVENTURE, TRANSFORM, FLIP -> faces.first().cmc
         AUGMENT, HOST, VANGUARD, PLANAR, SCHEME -> faces.sumOf { it.cmc } //hope that's correct

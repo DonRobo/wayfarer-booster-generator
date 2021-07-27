@@ -103,7 +103,7 @@ fun JsonObject.toMagicCardFace(): MagicCardFace {
             )
         } ?: emptySet(),
         isPlayable = when (CardLayout.fromDatabaseName(this["layout"].string)) {
-            HOST, AUGMENT, SCHEME, PLANAR, VANGUARD, SAGA, NORMAL, MODAL, SPLIT, LEVELER, ADVENTURE -> true
+            HOST, AUGMENT, SCHEME, PLANAR, VANGUARD, SAGA, NORMAL, MODAL, SPLIT, LEVELER, ADVENTURE, CLASS -> true
             AFTERMATH, TRANSFORM, FLIP, MELD -> this.getOrNull("side").nullString == "a"
         },
         hasNoDeckRestriction = this.getOrNull("hasAlternativeDeckLimit").nullBool ?: false,
